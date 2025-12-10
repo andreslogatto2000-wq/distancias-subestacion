@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Distancias Mínimas - Subestaciones</title>
+  <style>
+    :root{
+      --blue:#2563eb; --blue-dark:#1e40af;
+      --green:#16a34a; --green-dark:#0f7a2a;
+      --bg: linear-gradient(180deg,#f0f9ff,#ffffff);
+      --card:#ffffff;
+      --muted:#64748b;
+    }
+    body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial; margin:0; padding:20px; background:var(--bg); color:#0f172a;}
+    .container{max-width:980px;margin:0 auto;}
+    h1{text-align:center;color:var(--blue);font-size:28px;margin:0 0 18px;}
+    .intro{display:grid;grid-template-columns:1fr;gap:18px;background:var(--card);padding:18px;border-radius:12px;box-shadow:0 6px 18px rgba(15,23,42,0.06);margin-bottom:18px;}
+    @media(min-width:768px){ .intro{grid-template-columns:1fr 1fr} }
+    .intro p{margin:0;color:var(--muted);line-height:1.5}
+    .grid{display:grid;grid-template-columns:repeat(1,1fr);gap:12px;margin-bottom:18px;}
+    @media(min-width:768px){ .grid{grid-template-columns:repeat(2,1fr)} }
+    .btn{display:block;padding:12px;border-radius:14px;border:1px solid rgba(0,0,0,0.05);cursor:pointer;text-align:left;font-weight:600;box-shadow:0 4px 10px rgba(2,6,23,0.06);transition:transform .08s ease,box-shadow .12s;}
+    .btn:active{transform:translateY(1px)}
+    .btn .tag{display:inline-block;font-size:11px;padding:4px 8px;border-radius:999px;margin-top:6px}
+    .btn.ieee{background:linear-gradient(180deg,#60a5fa,#2563eb);color:#fff;border-color:rgba(30,64,175,0.6)}
+    .btn.retie{background:linear-gradient(180deg,#86efac,#16a34a);color:#06361a;border-color:rgba(15,122,42,0.6)}
+    .panel{background:var(--card);padding:16px;border-radius:12px;box-shadow:0 8px 24px rgba(2,6,23,0.06);}
+    .panel h2{margin:0 0 12px;color:var(--blue-dark)}
+    .row{display:flex;flex-direction:column;gap:12px}
+    @media(min-width:768px){ .row{flex-direction:row} }
+    ul{margin:0;padding-left:20px;color:var(--muted)}
+    .graphic{display:flex;align-items:center;justify-content:center}
+    .legend{display:flex;gap:8px;align-items:center;justify-content:center;margin-bottom:12px}
+    .legend span{font-size:13px;padding:6px 10px;border-radius:999px}
+    .legend .ieee{background:#bfdbfe;color:#1e3a8a}
+    .legend .retie{background:#bbf7d0;color:#065f46}
+    footer{margin-top:18px;text-align:center;color:#94a3b8;font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Distancias Mínimas de Seguridad en Subestaciones</h1>
+
+    <div class="intro" id="intro">
+      <p>
+        Esta página compila las <strong>distancias mínimas de seguridad</strong> en subestaciones eléctricas,
+        basadas en las normas <strong style="color:var(--blue)">IEEE</strong> y <strong style="color:var(--green)">RETIE</strong>.
+        Aquí encontrarás separaciones entre fases, barras, aisladores, partes energizadas y criterios para el personal de mantenimiento.
+      </p>
+      <p>
+        La correcta aplicación de estas distancias evita accidentes, protege al personal y asegura la continuidad de servicio.
+        Selecciona una categoría para ver los valores y un dibujo explicativo a la derecha que facilita su interpretación.
+      </p>
+    </div>
+
+    <div class="grid" id="buttons"></div>
+
+    <div id="resultArea" style="display:none;margin-top:8px;" class="panel">
+      <div class="legend">
+        <span class="ieee">IEEE</span>
+        <span class="retie">RETIE</span>
+      </div>
+      <h2 id="title"></h2>
+      <div class="row">
+        <div style="flex:1;">
+          <ul id="values"></ul>
+        </div>
+        <div style="flex:1;" class="graphic" id="graphic"></div>
+      </div>
+    </div>
+
+    <footer>
+      Datos orientativos compilados para apoyo técnico. Consulte las normas IEEE y RETIE originales para proyectos definitivos.
+    </footer>
+  </div>
+
+<script>
+(function(){
+  // Datos (copiados de tu aplicación)
+  const datos = {
+    "Distancias IEEE – L-L (fase a fase)": [
+      "≤ 15 kV → 0.20 m",
+      "15–35 kV → 0.32 m",
+      "35–69 kV → 0.61 m",
+      "69–115 kV → 1.07 m",
+      "115–161 kV → 1.52 m",
+      "230 kV → 2.44 m",
+      "500 kV → 5.49 m"
+    ],
+    "Distancias IEEE – L-T (fase a tierra)": [
+      "≤ 15 kV → 0.16 m",
+      "15–35 kV → 0.25 m",
+      "35–69 kV → 0.51 m",
+      "69–115 kV → 0.91 m",
+      "115–161 kV → 1.37 m",
+      "230 kV → 1.98 m",
+      "500 kV → 4.42 m"
+    ],
+    "Distancias IEEE – Ajuste por Altitud": [
+      "0–1000 msnm → sin ajuste",
+      "1000–2000 msnm → +5%",
+      "2000–3000 msnm → +10%",
+      ">3000 msnm → +15%"
+    ],
+    "IEEE – Distancia entre Barras": [
+      "≤ 15 kV → 0.25 m",
+      "15–35 kV → 0.40 m",
+      "35–69 kV → 0.75 m",
+      "69–115 kV → 1.20 m",
+      "115–230 kV → 2.50 m"
+    ],
+    "IEEE – Aislador a Tierra": [
+      "≤ 15 kV → 0.19 m",
+      "15–35 kV → 0.28 m",
+      "35–69 kV → 0.55 m",
+      "69–115 kV → 0.95 m",
+      "115–230 kV → 2.00 m"
+    ],
+    "IEEE – Altura Mínima del Personal": [
+      "Altura mínima de trabajo seguro → 2.2 m",
+      "Altura mínima para maniobras con pértigas → 3.0 m",
+      "Zona de aproximación restringida → ≥ 1 m por debajo de partes energizadas"
+    ],
+    "RETIE – Distancias Mínimas L-L": [
+      "≤ 1 kV → 0.03 m",
+      "1–15 kV → 0.20 m",
+      "15–33 kV → 0.32 m",
+      "33–66 kV → 0.60 m",
+      "66–110 kV → 1.00 m",
+      "110–230 kV → 2.00 m",
+      "230–500 kV → 5.00 m"
+    ],
+    "RETIE – Distancias Mínimas L-T": [
+      "≤ 1 kV → 0.02 m",
+      "1–15 kV → 0.16 m",
+      "15–33 kV → 0.25 m",
+      "33–66 kV → 0.50 m",
+      "66–110 kV → 0.90 m",
+      "110–230 kV → 1.90 m",
+      "230–500 kV → 4.50 m"
+    ],
+    "RETIE – Ajuste por Altura": [
+      "0–1000 msnm → sin ajuste",
+      "1000–2000 msnm → +3%",
+      "2000–3000 msnm → +7%",
+      ">3000 msnm → +12%"
+    ],
+    "RETIE – Distancia entre Barras": [
+      "≤ 15 kV → 0.20 m",
+      "15–33 kV → 0.35 m",
+      "33–66 kV → 0.70 m",
+      "66–110 kV → 1.10 m",
+      "110–230 kV → 2.20 m"
+    ],
+    "RETIE – Aislador a Tierra": [
+      "≤ 15 kV → 0.18 m",
+      "15–33 kV → 0.26 m",
+      "33–66 kV → 0.52 m",
+      "66–110 kV → 0.92 m",
+      "110–230 kV → 1.85 m"
+    ],
+    "RETIE – Altura Mínima del Personal": [
+      "Altura mínima de trabajo seguro → 2.2 m",
+      "Altura mínima zonas de mantenimiento → 2.5 m",
+      "Separación mínima del personal respecto a barras → ≥ 0.8 m"
+    ]
+  };
+
+  // Build buttons
+  const buttonsDiv = document.getElementById('buttons');
+  Object.keys(datos).forEach(key=>{
+    const btn = document.createElement('button');
+    btn.className = 'btn ' + (key.includes('RETIE') ? 'retie' : 'ieee');
+    btn.innerHTML = `<div>${key}</div><div class="tag ${key.includes('RETIE')? 'retie':'ieee'}">${key.includes('RETIE')? 'RETIE':'IEEE'}</div>`;
+    btn.onclick = ()=> showResult(key);
+    buttonsDiv.appendChild(btn);
+  });
+
+  function showResult(key){
+    const panel = document.getElementById('resultArea');
+    panel.style.display = 'block';
+    document.getElementById('title').textContent = key;
+    const valuesUl = document.getElementById('values');
+    valuesUl.innerHTML = '';
+    datos[key].forEach(v=>{
+      const li = document.createElement('li');
+      li.textContent = v;
+      // color the li text slightly depending on norm
+      li.style.color = key.includes('RETIE') ? '#064e3b' : '#1e3a8a';
+      valuesUl.appendChild(li);
+    });
+    renderGraphicForKey(key);
+  }
+
+  function renderGraphicForKey(key){
+    const g = document.getElementById('graphic');
+    g.innerHTML = '';
+    // choose by keywords
+    if(key.includes('L-L')){
+      // phase-phase
+      const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+      svg.setAttribute('width',220); svg.setAttribute('height',220); svg.setAttribute('viewBox','0 0 200 200');
+      const r1 = document.createElementNS(svg.namespaceURI,'rect'); r1.setAttribute('x',30); r1.setAttribute('y',60); r1.setAttribute('width',20); r1.setAttribute('height',100); r1.setAttribute('fill','#94a3b8');
+      const r2 = document.createElementNS(svg.namespaceURI,'rect'); r2.setAttribute('x',150); r2.setAttribute('y',60); r2.setAttribute('width',20); r2.setAttribute('height',100); r2.setAttribute('fill','#94a3b8');
+      const l = document.createElementNS(svg.namespaceURI,'line'); l.setAttribute('x1',40); l.setAttribute('y1',60); l.setAttribute('x2',160); l.setAttribute('y2',60); l.setAttribute('stroke', key.includes('RETIE')? '#064e3b':'#1e3a8a'); l.setAttribute('stroke-width',4);
+      const t = document.createElementNS(svg.namespaceURI,'text'); t.setAttribute('x',50); t.setAttribute('y',40); t.setAttribute('fill', key.includes('RETIE')? '#064e3b':'#1e3a8a'); t.setAttribute('font-size',12); t.textContent = 'Fase – Fase';
+      svg.appendChild(r1); svg.appendChild(r2); svg.appendChild(l); svg.appendChild(t);
+      g.appendChild(svg);
+      return;
+    }
+    if(key.includes('L-T')){
+      const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+      svg.setAttribute('width',220); svg.setAttribute('height',220); svg.setAttribute('viewBox','0 0 200 200');
+      const r = document.createElementNS(svg.namespaceURI,'rect'); r.setAttribute('x',150); r.setAttribute('y',60); r.setAttribute('width',20); r.setAttribute('height',100); r.setAttribute('fill','#94a3b8');
+      const c = document.createElementNS(svg.namespaceURI,'circle'); c.setAttribute('cx',60); c.setAttribute('cy',60); c.setAttribute('r',10); c.setAttribute('fill', key.includes('RETIE')? '#16a34a':'#ef4444');
+      const ln = document.createElementNS(svg.namespaceURI,'line'); ln.setAttribute('x1',60); ln.setAttribute('y1',60); ln.setAttribute('x2',160); ln.setAttribute('y2',160); ln.setAttribute('stroke', key.includes('RETIE')? '#064e3b':'#10b981'); ln.setAttribute('stroke-width',3);
+      const t = document.createElementNS(svg.namespaceURI,'text'); t.setAttribute('x',30); t.setAttribute('y',40); t.setAttribute('fill', key.includes('RETIE')? '#064e3b':'#1e3a8a'); t.setAttribute('font-size',12); t.textContent = 'Fase – Tierra';
+      svg.appendChild(r); svg.appendChild(c); svg.appendChild(ln); svg.appendChild(t);
+      g.appendChild(svg);
+      return;
+    }
+    if(key.toLowerCase().includes('barras')){
+      const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+      svg.setAttribute('width',220); svg.setAttribute('height',220); svg.setAttribute('viewBox','0 0 200 200');
+      const l1 = document.createElementNS(svg.namespaceURI,'line'); l1.setAttribute('x1',30); l1.setAttribute('y1',80); l1.setAttribute('x2',170); l1.setAttribute('y2',80); l1.setAttribute('stroke', key.includes('RETIE')? '#16a34a':'#ef4444'); l1.setAttribute('stroke-width',6);
+      const l2 = document.createElementNS(svg.namespaceURI,'line'); l2.setAttribute('x1',30); l2.setAttribute('y1',120); l2.setAttribute('x2',170); l2.setAttribute('y2',120); l2.setAttribute('stroke', key.includes('RETIE')? '#16a34a':'#ef4444'); l2.setAttribute('stroke-width',6);
+      const mid = document.createElementNS(svg.namespaceURI,'line'); mid.setAttribute('x1',100); mid.setAttribute('y1',80); mid.setAttribute('x2',100); mid.setAttribute('y2',120); mid.setAttribute('stroke', key.includes('RETIE')? '#064e3b':'#10b981'); mid.setAttribute('stroke-width',4);
+      const t = document.createElementNS(svg.namespaceURI,'text'); t.setAttribute('x',40); t.setAttribute('y',60); t.setAttribute('fill', key.includes('RETIE')? '#064e3b':'#1e3a8a'); t.setAttribute('font-size',12); t.textContent = 'Separación de Barras';
+      svg.appendChild(l1); svg.appendChild(l2); svg.appendChild(mid); svg.appendChild(t);
+      g.appendChild(svg);
+      return;
+    }
+    if(key.toLowerCase().includes('aislador')){
+      const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+      svg.setAttribute('width',220); svg.setAttribute('height',220); svg.setAttribute('viewBox','0 0 200 200');
+      const body = document.createElementNS(svg.namespaceURI,'rect'); body.setAttribute('x',90); body.setAttribute('y',40); body.setAttribute('width',20); body.setAttribute('height',80); body.setAttribute('fill','#94a3b8');
+      const top = document.createElementNS(svg.namespaceURI,'circle'); top.setAttribute('cx',100); top.setAttribute('cy',40); top.setAttribute('r',12); top.setAttribute('fill', key.includes('RETIE')? '#16a34a':'#ef4444');
+      const ln = document.createElementNS(svg.namespaceURI,'line'); ln.setAttribute('x1',100); ln.setAttribute('y1',120); ln.setAttribute('x2',100); ln.setAttribute('y2',170); ln.setAttribute('stroke', key.includes('RETIE')? '#064e3b':'#10b981'); ln.setAttribute('stroke-width',4);
+      const t = document.createElementNS(svg.namespaceURI,'text'); t.setAttribute('x',40); t.setAttribute('y',30); t.setAttribute('fill', key.includes('RETIE')? '#064e3b':'#1e3a8a'); t.setAttribute('font-size',12); t.textContent = 'Aislador a Tierra';
+      svg.appendChild(body); svg.appendChild(top); svg.appendChild(ln); svg.appendChild(t);
+      g.appendChild(svg);
+      return;
+    }
+    if(key.toLowerCase().includes('altura')){
+      const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+      svg.setAttribute('width',220); svg.setAttribute('height',220); svg.setAttribute('viewBox','0 0 200 200');
+      const l = document.createElementNS(svg.namespaceURI,'line'); l.setAttribute('x1',100); l.setAttribute('y1',20); l.setAttribute('x2',100); l.setAttribute('y2',180); l.setAttribute('stroke', key.includes('RETIE')? '#064e3b':'#10b981'); l.setAttribute('stroke-width',3);
+      const c = document.createElementNS(svg.namespaceURI,'circle'); c.setAttribute('cx',100); c.setAttribute('cy',60); c.setAttribute('r',12); c.setAttribute('fill', key.includes('RETIE')? '#16a34a':'#2563eb');
+      const rect = document.createElementNS(svg.namespaceURI,'rect'); rect.setAttribute('x',95); rect.setAttribute('y',72); rect.setAttribute('width',10); rect.setAttribute('height',40); rect.setAttribute('fill', key.includes('RETIE')? '#16a34a':'#2563eb');
+      const t = document.createElementNS(svg.namespaceURI,'text'); t.setAttribute('x',40); t.setAttribute('y',30); t.setAttribute('fill', key.includes('RETIE')? '#064e3b':'#1e3a8a'); t.setAttribute('font-size',12); t.textContent = 'Altura del personal';
+      svg.appendChild(l); svg.appendChild(c); svg.appendChild(rect); svg.appendChild(t);
+      g.appendChild(svg);
+      return;
+    }
+
+    // default simple icon
+    const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svg.setAttribute('width',220); svg.setAttribute('height',220); svg.setAttribute('viewBox','0 0 200 200');
+    const txt = document.createElementNS(svg.namespaceURI,'text'); txt.setAttribute('x',20); txt.setAttribute('y',100); txt.setAttribute('fill','#64748b'); txt.setAttribute('font-size',14); txt.textContent = 'Selecciona un ítem';
+    svg.appendChild(txt);
+    g.appendChild(svg);
+  }
+
+})();
+</script>
+</body>
+</html>
